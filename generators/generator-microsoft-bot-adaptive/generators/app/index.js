@@ -42,6 +42,7 @@ module.exports = class extends Generator {
         this._verifyOptions();
         this.applicationSettingsDirectory = this._validateApplicationSettingsDirectory(opts);
         this.includeApplicationSettings = this._validateIncludeApplicationSettings(opts);
+        this.modifyApplicationSettings = this._validateModifyApplicationSettings(opts);
         this.packageReferences = this._validatePackageReferences(opts.packageReferences);
         this.pluginDefinitions = this._validatePluginDefinitions(opts.pluginDefinitions);
     }
@@ -76,6 +77,15 @@ module.exports = class extends Generator {
         }
 
         return result;
+    }
+
+    _validateModifyApplicationSettings(opts) {
+        if ('modifyApplicationSettings' in opts &&
+            typeof opts.modifyApplicationSettings === 'function') {
+            return opts.modifyApplicationSettings;
+        }
+
+        return null;
     }
 
     _validatePackageReferences(packageReferences) {
@@ -226,11 +236,16 @@ module.exports = class extends Generator {
     _writeApplicationSettings() {
         const botName = this.options.botName;
         const fileName = 'appsettings.json';
+        const filePath 
 
         const appSettings = this.fs.readJSON(this.templatePath(path.join('assets', fileName)));
 
         for (const pluginDefinition of this.pluginDefinitions) {
             appSettings.runtimeSettings.plugins.push(pluginDefinition);
+        }
+
+        if (this.modifyApplicationSettings) {
+            this.modifyApplicationSettings(appSettings);
         }
 
         this.fs.writeJSON(
